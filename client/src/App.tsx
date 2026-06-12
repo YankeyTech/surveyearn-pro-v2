@@ -9,6 +9,7 @@ import Referrals from "@/pages/Referrals";
 import Rewards from "@/pages/Rewards";
 import Withdraw from "@/pages/Withdraw";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Login from "@/pages/Login";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
