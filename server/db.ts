@@ -116,6 +116,68 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
   }
+  export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * Create a new user with email/password, plus their wallet and referral record.
+ * Returns the created user.
+ */
+export async function createEmailUser(data: {
+  openId: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(users).values({
+    openId: data.openId,
+    name: data.name,
+    email: data.email,
+    passwordHash: data.passwordHash,
+    loginMethod: "email",
+    role: "user",
+    isVerified: false,
+    isSuspended: false,
+    isBanned: false,
+  });
+
+  const user = await getUserByEmail(data.email);
+  if (!user) throw new Error("Failed to create user");
+
+  // Create wallet
+  await db.insert(wallets).values({
+    userId: user.id,
+    currentBalance: 0,
+    totalEarned: 0,
+    totalRedeemed: 0,
+  });
+
+  // Create referral record with a unique code
+  const referralCode = `${data.openId.slice(0, 8)}${Math.random().toString(36).slice(2, 6)}`;
+  await db.insert(referrals).values({
+    referrerId: user.id,
+    referralCode,
+    referralUrl: `/register?ref=${referralCode}`,
+    totalClicks: 0,
+    totalSignups: 0,
+    totalEarnings: "0",
+  });
+
+  return user;
+}
 }
 
 export async function getUserByOpenId(openId: string) {
