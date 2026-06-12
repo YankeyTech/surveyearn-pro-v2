@@ -18,6 +18,7 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/login"} component={Login} />
       <Route path={"/surveys"} component={Surveys} />
       <Route path={/^\/survey\/\d+$/} component={SurveyDetail} />
       <Route path={"/wallet"} component={Wallet} />
