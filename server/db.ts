@@ -23,7 +23,15 @@ import { ENV } from "./_core/env";
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if const connection = await import("mysql2/promise").then((m) =>
+  m.createConnection({
+    uri: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  })
+);
+_db = drizzle(connection); {
     try {
       const mysql2 = require("mysql2/promise");
       const connection = mysql2.createPool({
