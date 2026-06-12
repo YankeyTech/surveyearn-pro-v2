@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -8,12 +9,13 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const mysql = await import("mysql2/promise");
-      const connection = await mysql.createConnection({
+      const pool = mysql.createPool({
         uri: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: false },
+        waitForConnections: true,
+        connectionLimit: 10,
       });
-      _db = drizzle(connection);
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -34,9 +36,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
+    const values: InsertUser = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
 
     const textFields = ["name", "email", "loginMethod"] as const;
@@ -89,6 +89,5 @@ export async function getUserByOpenId(openId: string) {
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
