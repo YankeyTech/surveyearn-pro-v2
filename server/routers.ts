@@ -11,6 +11,8 @@ import { nanoid } from "nanoid";
 import { getDb } from "./db";
 import { surveys, surveyResponses, transactions, wallets, referrals, referralSignups, withdrawalRequests, users, notifications, fraudLogs, dailyEarningCaps } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
+import { sdk } from "./_core/sdk";
+import { hashPassword, verifyPassword } from "./_core/password";
 
 // ============================================================================
 // Helper Functions
@@ -53,6 +55,84 @@ async function recordFraudLog(
 
 const authRouter = router({
   me: publicProcedure.query((opts) => opts.ctx.user),
+
+  register: publicProcedure
+    .input(
+      z.object({
+        name: z.string().min(2),
+        email: z.string().email(),
+        password: z.string().min(6),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const existing = await db.getUserByEmail(input.email);
+      if (existing) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "An account with this email already exists",
+        });
+      }
+
+      const openId = `local_${nanoid(20)}`;
+      const passwordHash = hashPassword(input.password);
+
+      const user = await db.createEmailUser({
+        openId,
+        name: input.name,
+        email: input.email,
+        passwordHash,
+      });
+
+      const token = await sdk.createSessionToken(user.openId, {
+        name: user.name ?? "",
+      });
+
+      ctx.res.cookie(COOKIE_NAME, token, getSessionCookieOptions(ctx.req));
+
+      return { success: true as const, user };
+    }),
+
+  login: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        password: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const user = await db.getUserByEmail(input.email);
+
+      if (!user || !user.passwordHash) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid email or password",
+        });
+      }
+
+      const valid = verifyPassword(input.password, user.passwordHash);
+      if (!valid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid email or password",
+        });
+      }
+
+      if (user.isBanned) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "This account has been banned" });
+      }
+      if (user.isSuspended) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "This account has been suspended" });
+      }
+
+      const token = await sdk.createSessionToken(user.openId, {
+        name: user.name ?? "",
+      });
+
+      ctx.res.cookie(COOKIE_NAME, token, getSessionCookieOptions(ctx.req));
+
+      return { success: true as const, user };
+    }),
+
   logout: publicProcedure.mutation(({ ctx }) => {
     const cookieOptions = getSessionCookieOptions(ctx.req);
     ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
