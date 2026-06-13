@@ -95,7 +95,7 @@ export default function AdminDashboard() {
               <CheckCircle className="w-5 h-5 text-green-500" />
             </div>
             <p className="text-4xl font-bold">
-              {analyticsLoading ? "-" : analytics?.completedSurveys || 0}
+              {analyticsLoading ? "-" : analytics?.totalResponses || 0}
             </p>
           </Card>
 
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
               <TrendingUp className="w-5 h-5 text-orange-500" />
             </div>
             <p className="text-4xl font-bold">
-              {analyticsLoading ? "-" : (analytics?.totalPointsDistributed || 0).toLocaleString()}
+              {analyticsLoading ? "-" : (analytics?.totalResponses || 0).toLocaleString()}
             </p>
           </Card>
         </div>
