@@ -11,7 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Surveys from "./pages/Surveys";
 import Wallet from "./pages/Wallet";
 import Withdraw from "./pages/Withdraw";
-import Admin from "./pages/Admin";
+import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
@@ -51,7 +51,9 @@ function Router() {
       <Route path="/referrals" component={() => <ProtectedRoute component={Referrals} />} />
       <Route path="/rewards" component={() => <ProtectedRoute component={Rewards} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
-      <Route path="/admin" component={() => <ProtectedRoute component={Admin} adminOnly />} />
+      <Route path="/admin" component={() => <ProtectedRoute component={AdminDashboard} adminOnly />} />
+      <Route path="/admin/users" component={() => <ProtectedRoute component={AdminDashboard} adminOnly />} />
+      <Route path="/admin/withdrawals" component={() => <ProtectedRoute component={AdminDashboard} adminOnly />} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

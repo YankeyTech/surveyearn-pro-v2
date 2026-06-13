@@ -2,7 +2,6 @@ import {
   int, mysqlEnum, mysqlTable, text,
   timestamp, varchar, boolean,
 } from "drizzle-orm/mysql-core";
-
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
@@ -11,14 +10,16 @@ export const users = mysqlTable("users", {
   passwordHash: varchar("passwordHash", { length: 255 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  isSuspended: boolean("isSuspended").notNull().default(false),
+  isBanned: boolean("isBanned").notNull().default(false),
+  isVerified: boolean("isVerified").notNull().default(false),
+  profilePictureUrl: varchar("profilePictureUrl", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
-
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-
 export const wallets = mysqlTable("wallets", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
@@ -27,9 +28,7 @@ export const wallets = mysqlTable("wallets", {
   totalWithdrawnCents: int("totalWithdrawnCents").notNull().default(0),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type Wallet = typeof wallets.$inferSelect;
-
 export const transactions = mysqlTable("transactions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -42,9 +41,7 @@ export const transactions = mysqlTable("transactions", {
   note: text("note"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
-
 export type Transaction = typeof transactions.$inferSelect;
-
 export const withdrawals = mysqlTable("withdrawals", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -56,5 +53,4 @@ export const withdrawals = mysqlTable("withdrawals", {
   requestedAt: timestamp("requestedAt").defaultNow().notNull(),
   processedAt: timestamp("processedAt"),
 });
-
 export type Withdrawal = typeof withdrawals.$inferSelect;
