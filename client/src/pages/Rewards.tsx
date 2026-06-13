@@ -85,7 +85,7 @@ const REWARDS = [
 
 export default function Rewards() {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const { data: wallet } = trpc.wallet.getBalance.useQuery(undefined, {
+  const { data: wallet } = trpc.wallet.summary.useQuery(undefined, {
     enabled: isAuthenticated,
   });
   const [selectedReward, setSelectedReward] = useState<(typeof REWARDS)[0] | null>(null);
@@ -140,7 +140,7 @@ export default function Rewards() {
     }
   };
 
-  const currentBalance = wallet?.currentBalance || 0;
+  const currentBalance = wallet?.balanceCents || 0;
 
   return (
     <div className="min-h-screen bg-background">

@@ -6,6 +6,8 @@ import { walletRouter } from "./routers/wallet";
 import { surveyRouter } from "./routers/survey";
 import { withdrawalRouter } from "./routers/withdrawal";
 import { adminRouter } from "./routers/admin";
+import { userRouter } from "./routers/user";
+import { referralRouter } from "./routers/referral";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -59,6 +61,8 @@ export const appRouter = router({
   survey: surveyRouter,
   withdrawal: withdrawalRouter,
   admin: adminRouter,
+  user: userRouter,
+  referral: referralRouter,
 });
 
 export type AppRouter = typeof appRouter;
