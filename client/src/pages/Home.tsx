@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -49,6 +50,12 @@ export default function Home() {
                 </Link>
                 <Link href="/wallet">
                   <Button variant="ghost">Wallet</Button>
+                </Link>
+                <Link href="/profile">
+                  <Button variant="ghost">Profile</Button>
+                </Link>
+                <Link href="/settings">
+                  <Button variant="ghost">Settings</Button>
                 </Link>
               </>
             ) : (
