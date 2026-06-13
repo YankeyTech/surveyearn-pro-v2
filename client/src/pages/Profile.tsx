@@ -35,6 +35,16 @@ export default function Profile() {
     onError: (e) => toast.error(e.message),
   });
 
+  const changePassword = trpc.user.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("Password updated successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -76,14 +86,11 @@ export default function Profile() {
   };
 
   const handleChangePassword = () => {
+    if (!currentPassword) { toast.error("Please enter your current password"); return; }
     if (!newPassword) { toast.error("Please enter a new password"); return; }
     if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
     if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
-    // Password change would need a separate backend endpoint
-    toast.success("Password updated successfully!");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    changePassword.mutate({ currentPassword, newPassword });
   };
 
   const initials = user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "U";
@@ -100,7 +107,7 @@ export default function Profile() {
       <div className="container py-8">
         <div className="grid lg:grid-cols-3 gap-8">
 
-          {/* Left — Avatar & Info */}
+          {/* Left - Avatar & Info */}
           <div className="space-y-6">
             <Card className="p-6 text-center">
               <div className="relative inline-block mb-4">
@@ -141,7 +148,7 @@ export default function Profile() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Member since</span>
                   <span className="font-medium">
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "—"}
+                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "-"}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -158,7 +165,7 @@ export default function Profile() {
             </Card>
           </div>
 
-          {/* Right — Forms */}
+          {/* Right - Forms */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* Personal Info */}
@@ -271,9 +278,9 @@ export default function Profile() {
                     ))}
                   </div>
                 )}
-                <Button onClick={handleChangePassword} variant="outline" className="gap-2">
+                <Button onClick={handleChangePassword} variant="outline" className="gap-2" disabled={changePassword.isPending}>
                   <Lock className="w-4 h-4" />
-                  Update Password
+                  {changePassword.isPending ? "Updating..." : "Update Password"}
                 </Button>
               </div>
             </Card>
