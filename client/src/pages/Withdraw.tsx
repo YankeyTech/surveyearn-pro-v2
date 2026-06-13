@@ -1,397 +1,187 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
-import { Zap, AlertCircle, CheckCircle } from "lucide-react";
+
+const MIN_CENTS = 500; // $5.00
+
+function cents(c: number) {
+  return `$${(c / 100).toFixed(2)}`;
+}
 
 export default function Withdraw() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const { data: wallet } = trpc.wallet.getBalance.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
-  const { data: requests } = trpc.withdrawal.getMyRequests.useQuery(
-    { limit: 10 },
-    { enabled: isAuthenticated }
-  );
+  const { data: wallet } = trpc.wallet.summary.useQuery();
+  const { data: myWithdrawals } = trpc.withdrawal.myList.useQuery();
+  const utils = trpc.useUtils();
 
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<"paypal" | "bank_transfer" | "gift_card">("paypal");
-  const [paymentDetails, setPaymentDetails] = useState<Record<string, string>>({});
-  const [step, setStep] = useState<"amount" | "method" | "confirm">("amount");
+  const [method, setMethod] = useState<"mobile_money" | "bank_transfer" | "paypal">("mobile_money");
+  const [accountDetails, setAccountDetails] = useState("");
+  const [done, setDone] = useState(false);
 
-  const submitWithdrawal = trpc.withdrawal.submit.useMutation({
+  const requestMutation = trpc.withdrawal.request.useMutation({
     onSuccess: () => {
-      toast.success("Withdrawal request submitted!");
-      setAmount("");
-      setPaymentDetails({});
-      setStep("amount");
+      utils.wallet.summary.invalidate();
+      utils.withdrawal.myList.invalidate();
+      setDone(true);
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
+    onError: (e) => toast.error(e.message),
   });
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin">
-          <Zap className="w-8 h-8 text-accent" />
-        </div>
-      </div>
-    );
-  }
+  const amountCents = Math.round(parseFloat(amount || "0") * 100);
+  const balance = wallet?.balanceCents ?? 0;
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="p-8 text-center max-w-md">
-          <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
-          <p className="text-muted-foreground mb-6">
-            You need to sign in to withdraw your earnings.
-          </p>
-          <Link href="/">
-            <Button>Go Home</Button>
-          </Link>
-        </Card>
-      </div>
-    );
-  }
-
-  const currentBalance = wallet?.currentBalance || 0;
-  const amountNum = parseFloat(amount) || 0;
-  const pointsNeeded = Math.ceil(amountNum * 100);
-  const canWithdraw = pointsNeeded >= 500 && currentBalance >= pointsNeeded;
-
-  const handleNext = () => {
-    if (step === "amount") {
-      if (!amount || amountNum < 5) {
-        toast.error("Minimum withdrawal is $5");
-        return;
-      }
-      if (currentBalance < pointsNeeded) {
-        toast.error("Insufficient balance");
-        return;
-      }
-      setStep("method");
-    } else if (step === "method") {
-      if (method === "paypal" && !paymentDetails.email) {
-        toast.error("Please enter your PayPal email");
-        return;
-      }
-      if (method === "bank_transfer" && (!paymentDetails.accountNumber || !paymentDetails.routingNumber)) {
-        toast.error("Please enter your bank details");
-        return;
-      }
-      setStep("confirm");
+  function handleSubmit() {
+    if (amountCents < MIN_CENTS) {
+      toast.error(`Minimum withdrawal is ${cents(MIN_CENTS)}`);
+      return;
     }
-  };
+    if (amountCents > balance) {
+      toast.error("Amount exceeds your available balance");
+      return;
+    }
+    if (!accountDetails.trim()) {
+      toast.error("Please provide account details");
+      return;
+    }
+    requestMutation.mutate({ amountCents, method, accountDetails });
+  }
 
-  const handleSubmit = () => {
-    submitWithdrawal.mutate({
-      amount: amountNum,
-      method,
-      paymentDetails,
-    });
-  };
+  if (done) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 px-4">
+        <CheckCircle className="w-16 h-16 text-green-500" />
+        <h2 className="text-2xl font-bold text-gray-800">Request Submitted!</h2>
+        <p className="text-gray-500 text-center max-w-sm">
+          Your withdrawal request is under review. You'll be notified once it's processed (usually within 1–3 business days).
+        </p>
+        <Link href="/">
+          <Button className="mt-2">Back to Dashboard</Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="container py-8">
-          <h1 className="text-3xl font-bold mb-2">Withdraw Earnings</h1>
-          <p className="text-muted-foreground">
-            Convert your points to cash or gift cards
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b px-6 py-4 flex items-center gap-4">
+        <Link href="/">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back
+          </Button>
+        </Link>
+        <h1 className="text-lg font-semibold text-gray-800">Withdraw Earnings</h1>
+      </header>
 
-      <div className="container py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Form */}
-          <div className="lg:col-span-2">
-            <Card className="p-8">
-              {step === "amount" && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-4">Step 1: Amount</h2>
-                    <p className="text-muted-foreground mb-6">
-                      Enter the amount you want to withdraw (minimum $5)
-                    </p>
-                  </div>
+      <main className="max-w-lg mx-auto px-4 py-8 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Available Balance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-4xl font-bold text-indigo-600">{cents(balance)}</p>
+            <p className="text-xs text-gray-400 mt-1">Minimum withdrawal: {cents(MIN_CENTS)}</p>
+          </CardContent>
+        </Card>
 
-                  <div>
-                    <Label htmlFor="amount" className="mb-2 block">
-                      Withdrawal Amount ($)
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-3 text-xl">$</span>
-                      <Input
-                        id="amount"
-                        type="number"
-                        placeholder="0.00"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="pl-8"
-                        min="5"
-                        step="0.01"
-                      />
-                    </div>
-                  </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">New Withdrawal Request</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (USD)</label>
+              <input
+                type="number"
+                min="5"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="e.g. 10.00"
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+            </div>
 
-                  {amount && (
-                    <div className="bg-muted p-4 rounded-lg space-y-2">
-                      <p className="text-sm">
-                        <strong>Amount:</strong> ${amountNum.toFixed(2)}
-                      </p>
-                      <p className="text-sm">
-                        <strong>Points needed:</strong> {pointsNeeded}
-                      </p>
-                      <p className="text-sm">
-                        <strong>Current balance:</strong> {currentBalance} points
-                      </p>
-                      {currentBalance >= pointsNeeded ? (
-                        <p className="text-sm text-green-600">✓ Sufficient balance</p>
-                      ) : (
-                        <p className="text-sm text-red-600">
-                          ✗ Insufficient balance ({currentBalance - pointsNeeded} points short)
-                        </p>
-                      )}
-                    </div>
-                  )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+              <select
+                value={method}
+                onChange={(e) => setMethod(e.target.value as typeof method)}
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              >
+                <option value="mobile_money">Mobile Money</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="paypal">PayPal</option>
+              </select>
+            </div>
 
-                  <Button
-                    onClick={handleNext}
-                    disabled={!canWithdraw}
-                    className="w-full"
-                  >
-                    Continue
-                  </Button>
-                </div>
-              )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Account Details
+              </label>
+              <textarea
+                value={accountDetails}
+                onChange={(e) => setAccountDetails(e.target.value)}
+                rows={3}
+                placeholder={
+                  method === "mobile_money"
+                    ? "Phone number + network (e.g. 024XXXXXXX · MTN Ghana)"
+                    : method === "bank_transfer"
+                    ? "Bank name, account number, account name"
+                    : "PayPal email address"
+                }
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+            </div>
 
-              {step === "method" && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-4">Step 2: Payment Method</h2>
-                    <p className="text-muted-foreground mb-6">
-                      Choose how you want to receive your withdrawal
-                    </p>
-                  </div>
+            <Button
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              onClick={handleSubmit}
+              disabled={requestMutation.isPending}
+            >
+              {requestMutation.isPending ? "Submitting…" : "Submit Request"}
+            </Button>
+          </CardContent>
+        </Card>
 
-                  <RadioGroup value={method} onValueChange={(v: any) => setMethod(v)}>
-                    {/* PayPal */}
-                    <div className="border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/50">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <RadioGroupItem value="paypal" id="paypal" />
-                        <Label htmlFor="paypal" className="font-semibold cursor-pointer">
-                          PayPal
-                        </Label>
-                      </div>
-                      {method === "paypal" && (
-                        <div className="ml-6 space-y-3">
-                          <Input
-                            placeholder="PayPal email"
-                            value={paymentDetails.email || ""}
-                            onChange={(e) =>
-                              setPaymentDetails({ ...paymentDetails, email: e.target.value })
-                            }
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bank Transfer */}
-                    <div className="border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/50">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <RadioGroupItem value="bank_transfer" id="bank_transfer" />
-                        <Label htmlFor="bank_transfer" className="font-semibold cursor-pointer">
-                          Bank Transfer
-                        </Label>
-                      </div>
-                      {method === "bank_transfer" && (
-                        <div className="ml-6 space-y-3">
-                          <Input
-                            placeholder="Account number"
-                            value={paymentDetails.accountNumber || ""}
-                            onChange={(e) =>
-                              setPaymentDetails({
-                                ...paymentDetails,
-                                accountNumber: e.target.value,
-                              })
-                            }
-                          />
-                          <Input
-                            placeholder="Routing number"
-                            value={paymentDetails.routingNumber || ""}
-                            onChange={(e) =>
-                              setPaymentDetails({
-                                ...paymentDetails,
-                                routingNumber: e.target.value,
-                              })
-                            }
-                          />
-                          <Input
-                            placeholder="Account holder name"
-                            value={paymentDetails.accountHolder || ""}
-                            onChange={(e) =>
-                              setPaymentDetails({
-                                ...paymentDetails,
-                                accountHolder: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Gift Card */}
-                    <div className="border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/50">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <RadioGroupItem value="gift_card" id="gift_card" />
-                        <Label htmlFor="gift_card" className="font-semibold cursor-pointer">
-                          Gift Card
-                        </Label>
-                      </div>
-                      {method === "gift_card" && (
-                        <div className="ml-6 space-y-3">
-                          <p className="text-sm text-muted-foreground">
-                            Choose your preferred gift card in the next step
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </RadioGroup>
-
-                  <div className="flex gap-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep("amount")}
-                      className="flex-1"
-                    >
-                      Back
-                    </Button>
-                    <Button onClick={handleNext} className="flex-1">
-                      Continue
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {step === "confirm" && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-4">Step 3: Confirm</h2>
-                    <p className="text-muted-foreground mb-6">
-                      Review your withdrawal details
-                    </p>
-                  </div>
-
-                  <div className="bg-muted p-6 rounded-lg space-y-4">
-                    <div className="flex justify-between items-center pb-4 border-b border-border">
-                      <span className="text-muted-foreground">Amount</span>
-                      <span className="text-2xl font-bold">${amountNum.toFixed(2)}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center pb-4 border-b border-border">
-                      <span className="text-muted-foreground">Method</span>
-                      <span className="font-semibold capitalize">{method.replace("_", " ")}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center pb-4 border-b border-border">
-                      <span className="text-muted-foreground">Points deducted</span>
-                      <span className="font-semibold">{pointsNeeded} pts</span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Remaining balance</span>
-                      <span className="font-semibold">{currentBalance - pointsNeeded} pts</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        {/* Past withdrawal requests */}
+        {!!myWithdrawals?.length && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Your Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="divide-y">
+                {myWithdrawals.map((w) => (
+                  <li key={w.id} className="py-3 flex justify-between items-center">
                     <div>
-                      <p className="text-sm font-semibold text-blue-900">Processing time</p>
-                      <p className="text-sm text-blue-800">
-                        Most withdrawals are processed within 24-48 hours
+                      <p className="text-sm font-medium">{cents(w.amountCents)}</p>
+                      <p className="text-xs text-gray-400 capitalize">{w.method.replace(/_/g, " ")}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(w.requestedAt).toLocaleDateString()}
                       </p>
                     </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep("method")}
-                      className="flex-1"
+                    <span
+                      className={`text-xs font-semibold px-2 py-1 rounded-full capitalize ${
+                        w.status === "approved" || w.status === "paid"
+                          ? "bg-green-100 text-green-700"
+                          : w.status === "rejected"
+                          ? "bg-red-100 text-red-600"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
                     >
-                      Back
-                    </Button>
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={submitWithdrawal.isPending}
-                      className="flex-1"
-                    >
-                      {submitWithdrawal.isPending ? "Processing..." : "Confirm Withdrawal"}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Balance Card */}
-            <Card className="p-6 bg-gradient-to-br from-accent/10 to-blue-600/10">
-              <p className="text-sm text-muted-foreground mb-2">Available Balance</p>
-              <p className="text-4xl font-bold mb-2">${(currentBalance * 0.01).toFixed(2)}</p>
-              <p className="text-sm text-muted-foreground">{currentBalance} points</p>
-            </Card>
-
-            {/* Recent Withdrawals */}
-            <Card className="p-6">
-              <h3 className="font-semibold mb-4">Recent Withdrawals</h3>
-              {requests && requests.length > 0 ? (
-                <div className="space-y-3">
-                  {requests.slice(0, 5).map((req) => (
-                    <div key={req.id} className="flex items-center justify-between pb-3 border-b border-border last:border-b-0">
-                      <div>
-                        <p className="text-sm font-medium">${req.amount}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {req.status}
-                        </p>
-                      </div>
-                      {req.status === "approved" && (
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No withdrawals yet</p>
-              )}
-            </Card>
-
-            {/* Info */}
-            <Card className="p-6 bg-blue-50 border-blue-200">
-              <h3 className="font-semibold mb-3 text-blue-900">Withdrawal Info</h3>
-              <ul className="text-sm text-blue-800 space-y-2">
-                <li>• Minimum withdrawal: $5</li>
-                <li>• Processing time: 24-48 hours</li>
-                <li>• Conversion: 1 point = $0.01</li>
-                <li>• No fees or hidden charges</li>
+                      {w.status}
+                    </span>
+                  </li>
+                ))}
               </ul>
-            </Card>
-          </div>
-        </div>
-      </div>
+            </CardContent>
+          </Card>
+        )}
+      </main>
     </div>
   );
 }
