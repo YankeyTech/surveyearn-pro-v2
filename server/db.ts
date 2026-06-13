@@ -3,10 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import * as mysql from "mysql2/promise";
 import {
   InsertUser, users,
-  surveys, surveyQuestions, surveyResponses,
-  wallets, transactions, referrals, referralSignups,
-  withdrawalRequests, notifications, auditLogs,
-  fraudLogs, dailyEarningCaps, rewards
+  wallets, transactions, withdrawals,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -79,24 +76,10 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function createEmailUser(data: {
-  openId: string; name: string; email: string; passwordHash: string;
-}) {
+export async function setUserRole(email: string, role: "user" | "admin") {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(users).values({
-    openId: data.openId,
-    name: data.name,
-    email: data.email,
-    passwordHash: data.passwordHash,
-    loginMethod: "email",
-    lastSignedIn: new Date(),
-  });
-  const result = await db.select().from(users).where(eq(users.openId, data.openId)).limit(1);
-  if (!result[0]) throw new Error("Failed to create user");
-  // Create wallet for new user
-  await db.insert(wallets).values({ userId: result[0].id }).onDuplicateKeyUpdate({ set: { userId: result[0].id } });
-  return result[0];
+  await db.update(users).set({ role }).where(eq(users.email, email));
 }
 
 export async function getAllUsers(limit: number, offset: number) {
@@ -105,41 +88,7 @@ export async function getAllUsers(limit: number, offset: number) {
   return await db.select().from(users).limit(limit).offset(offset);
 }
 
-// ── Surveys ────────────────────────────────────────────────────────────────
-
-export async function getPublishedSurveys(limit: number, offset: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return await db.select().from(surveys)
-    .where(eq(surveys.status, "published"))
-    .limit(limit).offset(offset);
-}
-
-export async function getSurveyById(id: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(surveys).where(eq(surveys.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
-}
-
-export async function getSurveyQuestions(surveyId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return await db.select().from(surveyQuestions)
-    .where(eq(surveyQuestions.surveyId, surveyId))
-    .orderBy(surveyQuestions.questionNumber);
-}
-
-export async function getUserSurveyResponse(userId: number, surveyId: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(surveyResponses)
-    .where(and(eq(surveyResponses.userId, userId), eq(surveyResponses.surveyId, surveyId)))
-    .limit(1);
-  return result.length > 0 ? result[0] : undefined;
-}
-
-// ── Wallet & Transactions ──────────────────────────────────────────────────
+// ── Wallet ─────────────────────────────────────────────────────────────────
 
 export async function getUserWallet(userId: number) {
   const db = await getDb();
@@ -157,85 +106,19 @@ export async function getUserTransactionHistory(userId: number, limit: number) {
     .limit(limit);
 }
 
-// ── Referrals ──────────────────────────────────────────────────────────────
-
-export async function getUserReferral(userId: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(referrals).where(eq(referrals.referrerId, userId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
-}
-
 // ── Withdrawals ────────────────────────────────────────────────────────────
 
-export async function getWithdrawalRequestById(id: number) {
+export async function getWithdrawalById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(withdrawalRequests).where(eq(withdrawalRequests.id, id)).limit(1);
+  const result = await db.select().from(withdrawals).where(eq(withdrawals.id, id)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getPendingWithdrawalRequests(limit: number) {
+export async function getPendingWithdrawals(limit: number) {
   const db = await getDb();
   if (!db) return [];
-  return await db.select().from(withdrawalRequests)
-    .where(eq(withdrawalRequests.status, "pending"))
+  return await db.select().from(withdrawals)
+    .where(eq(withdrawals.status, "pending"))
     .limit(limit);
-}
-
-// ── Notifications ──────────────────────────────────────────────────────────
-
-export async function getUserNotifications(userId: number, limit: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return await db.select().from(notifications)
-    .where(eq(notifications.userId, userId))
-    .orderBy(desc(notifications.createdAt))
-    .limit(limit);
-}
-
-// ── Daily Earning Caps ─────────────────────────────────────────────────────
-
-export async function getDailyEarningCap(userId: number, date: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(dailyEarningCaps)
-    .where(and(eq(dailyEarningCaps.userId, userId), eq(dailyEarningCaps.date, date)))
-    .limit(1);
-  return result.length > 0 ? result[0] : undefined;
-}
-
-// ── Audit Logs ─────────────────────────────────────────────────────────────
-
-export async function createAuditLog(
-  adminId: number, action: string, targetType: string,
-  targetId?: number, changes?: any
-) {
-  const db = await getDb();
-  if (!db) return;
-  await db.insert(auditLogs).values({ adminId, action, targetType, targetId, changes });
-}
-
-export async function setUserRole(email: string, role: "user" | "admin") {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(users).set({ role }).where(eq(users.email, email));
-}
-
-// ── Analytics ──────────────────────────────────────────────────────────────
-
-export async function getPlatformAnalytics() {
-  const db = await getDb();
-  if (!db) return { totalUsers: 0, totalSurveys: 0, totalResponses: 0, pendingWithdrawals: 0 };
-  const [userCount] = await db.select().from(users).limit(1);
-  const allUsers = await db.select().from(users);
-  const allSurveys = await db.select().from(surveys);
-  const allResponses = await db.select().from(surveyResponses);
-  const pendingW = await db.select().from(withdrawalRequests).where(eq(withdrawalRequests.status, "pending"));
-  return {
-    totalUsers: allUsers.length,
-    totalSurveys: allSurveys.length,
-    totalResponses: allResponses.length,
-    pendingWithdrawals: pendingW.length,
-  };
 }
