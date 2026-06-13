@@ -216,6 +216,12 @@ export async function createAuditLog(
   await db.insert(auditLogs).values({ adminId, action, targetType, targetId, changes });
 }
 
+export async function setUserRole(email: string, role: "user" | "admin") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ role }).where(eq(users.email, email));
+}
+
 // ── Analytics ──────────────────────────────────────────────────────────────
 
 export async function getPlatformAnalytics() {
