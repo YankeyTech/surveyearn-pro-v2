@@ -14,9 +14,16 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
+import Dashboard from "@/pages/Dashboard";
+import Profile from "@/pages/Profile";
+import Settings from "@/pages/Settings";
+
 function Router() {
   return (
     <Switch>
+      <Route path={"/dashboard"} component={Dashboard} />
+<Route path={"/profile"} component={Profile} />
+<Route path={"/settings"} component={Settings} />
       <Route path={"/"} component={Home} />
 <Route path={"/dashboard"} component={Home} />
       <Route path={"/login"} component={Login} />
