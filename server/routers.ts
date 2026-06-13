@@ -25,33 +25,40 @@ export const appRouter = router({
       return { success: true } as const;
     }),
     register: publicProcedure
-      .input(z.object({
-        name: z.string().min(1),
-        email: z.string().email(),
-        password: z.string().min(6),
-      }))
+      .input(z.object({ name: z.string().min(1), email: z.string().email(), password: z.string().min(6) }))
       .mutation(async ({ input, ctx }) => {
         const existing = await db.getUserByEmail(input.email);
-        if (existing) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Email already registered" });
-        }
+        if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "Email already registered" });
         const openId = `email_${nanoid()}`;
         const passwordHash = hashPassword(input.password);
-        await db.upsertUser({
-          openId,
-          name: input.name,
-          email: input.email,
-          loginMethod: "email",
-          lastSignedIn: new Date(),
-        });
+        await db.upsertUser({ openId, name: input.name, email: input.email, loginMethod: "email", lastSignedIn: new Date() });
         const user = await db.getUserByEmail(input.email);
         if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         const dbInstance = await db.getDb();
-        if (dbInstance) {
-          await dbInstance.update(users).set({ passwordHash }).where(eq(users.id, user.id));
-        }
-        const sessionToken = await sdk.createSessionToken(openId, {
-          name: input.name,
-          expiresInMs: ONE_YEAR_MS,
-        });
+        if (dbInstance) await dbInstance.update(users).set({ passwordHash }).where(eq(users.id, user.id));
+        const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true };
+      }),
+    login: publicProcedure
+      .input(z.object({ email: z.string().email(), password: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user || !user.passwordHash) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        const valid = verifyPassword(input.password, user.passwordHash);
+        if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true };
+      }),
+  }),
+  wallet: walletRouter,
+  survey: surveyRouter,
+  withdrawal: withdrawalRouter,
+  admin: adminRouter,
+});
+
+export type AppRouter = typeof appRouter;
