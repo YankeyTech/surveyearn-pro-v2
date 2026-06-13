@@ -61,7 +61,7 @@ export default function SponsoredAds() {
         {/* Google AdSense Banner 1 */}
         <div className="bg-card border border-border rounded-xl p-4">
           <div className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">Sponsored</div>
-          <AdBanner slot="YOUR_AD_SLOT_1" />
+          <AdBanner slot="7524666176" />
         </div>
 
         {/* CPAlead section */}
@@ -79,7 +79,7 @@ export default function SponsoredAds() {
         {/* Google AdSense Banner 2 */}
         <div className="bg-card border border-border rounded-xl p-4">
           <div className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">Sponsored</div>
-          <AdBanner slot="YOUR_AD_SLOT_2" />
+          <AdBanner slot="3593160021" />
         </div>
 
         {/* Tips */}

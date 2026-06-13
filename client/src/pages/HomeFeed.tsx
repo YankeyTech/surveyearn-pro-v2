@@ -79,9 +79,9 @@ export default function HomeFeed() {
       desc: "Earn by engaging with brands",
       icon: Megaphone,
       gradient: "from-amber-500 to-orange-500",
-      href: "/surveys",
-      badge: "SOON",
-      badgeColor: "bg-white/30 text-white",
+      href: "/sponsored-ads",
+      badge: "LIVE",
+      badgeColor: "bg-green-400 text-green-900",
     },
   ];
 
@@ -366,3 +366,5 @@ export default function HomeFeed() {
     </div>
   );
 }
+
+
