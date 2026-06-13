@@ -8,6 +8,8 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { cpxPostbackHandler } from "../cpx";
+   app.all("/api/cpx/postback", cpxPostbackHandler);
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
