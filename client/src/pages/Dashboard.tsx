@@ -3,7 +3,10 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { DollarSign, TrendingUp, ArrowDownCircle, ClipboardList, LogOut, Gift, ArrowLeft } from "lucide-react";
+import {
+  DollarSign, TrendingUp, ArrowDownCircle, ClipboardList, LogOut, Gift,
+  User, Users, Settings as SettingsIcon, Shield,
+} from "lucide-react";
 import { toast } from "sonner";
 
 function cents(c: number) {
@@ -27,23 +30,26 @@ export default function Dashboard() {
     onError: (e) => toast.error(e.message),
   });
 
+  const quickLinks = [
+    { href: "/surveys", label: "Surveys", icon: ClipboardList, color: "text-indigo-600 bg-indigo-100" },
+    { href: "/wallet", label: "Wallet", icon: DollarSign, color: "text-green-600 bg-green-100" },
+    { href: "/withdraw", label: "Withdraw", icon: ArrowDownCircle, color: "text-orange-600 bg-orange-100" },
+    { href: "/rewards", label: "Rewards", icon: Gift, color: "text-pink-600 bg-pink-100" },
+    { href: "/referrals", label: "Referrals", icon: Users, color: "text-purple-600 bg-purple-100" },
+    { href: "/profile", label: "Profile", icon: User, color: "text-blue-600 bg-blue-100" },
+    { href: "/settings", label: "Settings", icon: SettingsIcon, color: "text-gray-600 bg-gray-100" },
+  ];
+
+  if (user?.role === "admin") {
+    quickLinks.push({ href: "/admin", label: "Admin", icon: Shield, color: "text-red-600 bg-red-100" });
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top nav */}
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back
-          </Button>
-          <h1 className="text-xl font-bold text-indigo-600">SurveyEarn Pro</h1>
-        </div>
+        <h1 className="text-xl font-bold text-indigo-600">SurveyEarn Pro</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600">{user?.name ?? user?.email}</span>
-          {user?.role === "admin" && (
-            <Link href="/admin">
-              <Button variant="outline" size="sm">Admin</Button>
-            </Link>
-          )}
           <Button variant="ghost" size="sm" onClick={logout}>
             <LogOut className="w-4 h-4 mr-1" /> Logout
           </Button>
@@ -51,7 +57,6 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        {/* Stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -90,9 +95,8 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Daily Check-in */}
         <Card>
-          <CardContent className="flex items-center justify-between py-5">
+          <CardContent className="flex items-center justify-between py-5 flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
                 <Gift className="w-5 h-5 text-indigo-600" />
@@ -131,26 +135,25 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick actions */}
-        <div className="flex gap-3 flex-wrap">
-          <Link href="/surveys">
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
-              <ClipboardList className="w-4 h-4 mr-2" /> Take Surveys
-            </Button>
-          </Link>
-          <Link href="/withdraw">
-            <Button variant="outline">
-              <ArrowDownCircle className="w-4 h-4 mr-2" /> Withdraw
-            </Button>
-          </Link>
-          <Link href="/wallet">
-            <Button variant="outline">
-              <DollarSign className="w-4 h-4 mr-2" /> Transaction History
-            </Button>
-          </Link>
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 mb-3">Quick Access</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {quickLinks.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link key={item.href} href={item.href}>
+                  <Card className="p-4 flex flex-col items-center gap-2 text-center hover:shadow-md transition-shadow cursor-pointer">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.color}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Recent transactions */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Recent Activity</CardTitle>
