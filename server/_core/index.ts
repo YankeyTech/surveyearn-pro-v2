@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
@@ -47,17 +46,8 @@ async function startServer() {
     try {
       const db = await import("../db");
       const user = await db.getUserByEmail("barcavini17@gmail.com");
-      if (!user) return res.status(404).json({ error: "User not found" });
-      const { drizzle } = await import("drizzle-orm/mysql2");
-      const { users } = await import("../../drizzle/schema");
-      const { eq } = await import("drizzle-orm");
-      const mysql2 = require("mysql2/promise");
-      const connection = mysql2.createPool({
-        uri: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false },
-      });
-      const dbInstance = drizzle(connection);
-      await dbInstance.update(users).set({ role: "admin" }).where(eq(users.email, "barcavini17@gmail.com"));
+      if (!user) return res.status(404).json({ error: "User not found — make sure you registered first" });
+      await db.setUserRole("barcavini17@gmail.com", "admin");
       return res.json({ success: true, message: "Admin role granted to barcavini17@gmail.com" });
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
