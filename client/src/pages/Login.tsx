@@ -15,7 +15,7 @@ import {
 
 export default function Login() {
   const [, navigate] = useLocation();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,9 +29,7 @@ export default function Login() {
       await utils.auth.me.invalidate();
       navigate("/");
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
+    onError: (error) => toast.error(error.message),
   });
 
   const register = trpc.auth.register.useMutation({
@@ -40,30 +38,33 @@ export default function Login() {
       await utils.auth.me.invalidate();
       navigate("/");
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
+    onError: (error) => toast.error(error.message),
   });
 
-  const isLoading = login.isPending || register.isPending;
+  const forgotPassword = trpc.auth.forgotPassword.useMutation({
+    onSuccess: () => {
+      toast.success("If that email exists, a reset link has been sent!");
+      setMode("login");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const isLoading = login.isPending || register.isPending || forgotPassword.isPending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      toast.error("Please fill in all fields");
+    if (mode === "forgot") {
+      if (!email) { toast.error("Please enter your email"); return; }
+      forgotPassword.mutate({ email });
       return;
     }
 
+    if (!email || !password) { toast.error("Please fill in all fields"); return; }
+
     if (mode === "register") {
-      if (!name) {
-        toast.error("Please enter your name");
-        return;
-      }
-      if (password.length < 6) {
-        toast.error("Password must be at least 6 characters");
-        return;
-      }
+      if (!name) { toast.error("Please enter your name"); return; }
+      if (password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
       register.mutate({ name, email, password });
     } else {
       login.mutate({ email, password });
@@ -75,12 +76,14 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">
-            {mode === "login" ? "Welcome back" : "Create your account"}
+            {mode === "login" ? "Welcome back" : mode === "register" ? "Create your account" : "Reset your password"}
           </CardTitle>
           <CardDescription>
             {mode === "login"
               ? "Sign in to continue earning rewards"
-              : "Sign up to start earning rewards"}
+              : mode === "register"
+              ? "Sign up to start earning rewards"
+              : "Enter your email and we'll send you a reset link"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -111,26 +114,39 @@ export default function Login() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete={
-                  mode === "login" ? "current-password" : "new-password"
-                }
-              />
-            </div>
+            {mode !== "forgot" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {mode === "login" && (
+                    <button
+                      type="button"
+                      className="text-xs text-accent underline"
+                      onClick={() => setMode("forgot")}
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                />
+              </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading
                 ? "Please wait..."
                 : mode === "login"
-                  ? "Sign in"
-                  : "Create account"}
+                ? "Sign in"
+                : mode === "register"
+                ? "Create account"
+                : "Send reset link"}
             </Button>
           </form>
 
@@ -138,23 +154,22 @@ export default function Login() {
             {mode === "login" ? (
               <>
                 Don't have an account?{" "}
-                <button
-                  type="button"
-                  className="text-accent underline"
-                  onClick={() => setMode("register")}
-                >
+                <button type="button" className="text-accent underline" onClick={() => setMode("register")}>
                   Sign up
+                </button>
+              </>
+            ) : mode === "register" ? (
+              <>
+                Already have an account?{" "}
+                <button type="button" className="text-accent underline" onClick={() => setMode("login")}>
+                  Sign in
                 </button>
               </>
             ) : (
               <>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  className="text-accent underline"
-                  onClick={() => setMode("login")}
-                >
-                  Sign in
+                Remember it?{" "}
+                <button type="button" className="text-accent underline" onClick={() => setMode("login")}>
+                  Back to sign in
                 </button>
               </>
             )}

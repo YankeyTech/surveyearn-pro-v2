@@ -14,6 +14,7 @@ import Wallet from "./pages/Wallet";
 import Withdraw from "./pages/Withdraw";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Referrals from "./pages/Referrals";
@@ -44,8 +45,9 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
-<Route path="/home-feed" component={() => <ProtectedRoute component={HomeFeed} />} />
+      <Route path="/home-feed" component={() => <ProtectedRoute component={HomeFeed} />} />
       <Route path="/surveys" component={() => <ProtectedRoute component={Surveys} />} />
       <Route path="/wallet" component={() => <ProtectedRoute component={Wallet} />} />
       <Route path="/withdraw" component={() => <ProtectedRoute component={Withdraw} />} />

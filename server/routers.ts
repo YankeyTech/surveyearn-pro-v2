@@ -15,6 +15,8 @@ import { nanoid } from "nanoid";
 import * as db from "./db";
 import { users } from "../drizzle/schema";
 import { hashPassword, verifyPassword } from "./_core/password";
+import { sendPasswordResetEmail } from "./email";
+import { randomBytes } from "crypto";
 import { sdk } from "./_core/sdk";
 
 export const appRouter = router({
@@ -41,6 +43,40 @@ export const appRouter = router({
         const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true };
+      }),
+forgotPassword: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user) return { success: true };
+        const token = randomBytes(32).toString("hex");
+        const expiry = new Date(Date.now() + 1000 * 60 * 60);
+        const dbInstance = await db.getDb();
+        if (dbInstance) {
+          await dbInstance.update(users)
+            .set({ passwordResetToken: token, passwordResetExpiry: expiry })
+            .where(eq(users.id, user.id));
+        }
+        await sendPasswordResetEmail(user.email ?? "", user.name ?? "there", token);
+        return { success: true };
+      }),
+
+    resetPassword: publicProcedure
+      .input(z.object({ token: z.string(), password: z.string().min(6) }))
+      .mutation(async ({ input }) => {
+        const dbInstance = await db.getDb();
+        if (!dbInstance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [user] = await dbInstance.select().from(users)
+          .where(eq(users.passwordResetToken, input.token))
+          .limit(1);
+        if (!user || !user.passwordResetExpiry || user.passwordResetExpiry < new Date()) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Reset link is invalid or has expired" });
+        }
+        const passwordHash = hashPassword(input.password);
+        await dbInstance.update(users)
+          .set({ passwordHash, passwordResetToken: null, passwordResetExpiry: null })
+          .where(eq(users.id, user.id));
         return { success: true };
       }),
     login: publicProcedure
