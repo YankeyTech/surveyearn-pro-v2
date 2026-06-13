@@ -17,6 +17,7 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+lastCheckinAt: timestamp("lastCheckinAt"),
 });
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -32,7 +33,7 @@ export type Wallet = typeof wallets.$inferSelect;
 export const transactions = mysqlTable("transactions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  type: mysqlEnum("type", ["survey_credit", "withdrawal_debit", "adjustment"]).notNull(),
+  type: mysqlEnum("type", ["survey_credit", "withdrawal_debit", "adjustment", "daily_checkin"]).notNull(),
   amountCents: int("amountCents").notNull(),
   cpxTransId: varchar("cpxTransId", { length: 128 }),
   cpxSurveyId: varchar("cpxSurveyId", { length: 128 }),

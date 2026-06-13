@@ -3,7 +3,8 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { DollarSign, TrendingUp, ArrowDownCircle, ClipboardList, LogOut } from "lucide-react";
+import { DollarSign, TrendingUp, ArrowDownCircle, ClipboardList, LogOut, Gift } from "lucide-react";
+import { toast } from "sonner";
 
 function cents(c: number) {
   return `$${(c / 100).toFixed(2)}`;
@@ -13,6 +14,18 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const { data: wallet, isLoading } = trpc.wallet.summary.useQuery();
   const { data: history } = trpc.wallet.history.useQuery({ limit: 5 });
+  const { data: checkin, isLoading: checkinLoading } = trpc.user.getCheckinStatus.useQuery();
+  const utils = trpc.useUtils();
+
+  const dailyCheckin = trpc.user.dailyCheckin.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Checked in! +${cents(data.rewardCents)} added to your balance.`);
+      utils.user.getCheckinStatus.invalidate();
+      utils.wallet.summary.invalidate();
+      utils.wallet.history.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -71,6 +84,40 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Daily Check-in */}
+        <Card>
+          <CardContent className="flex items-center justify-between py-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                <Gift className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Daily Check-in Bonus</p>
+                <p className="text-xs text-gray-400">
+                  {checkinLoading
+                    ? "Loading..."
+                    : checkin?.canCheckin
+                    ? `Claim ${cents(checkin?.rewardCents ?? 10)} for free, once every 24 hours`
+                    : checkin?.nextCheckinAt
+                    ? `Next check-in available at ${new Date(checkin.nextCheckinAt).toLocaleString()}`
+                    : ""}
+                </p>
+              </div>
+            </div>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              disabled={checkinLoading || !checkin?.canCheckin || dailyCheckin.isPending}
+              onClick={() => dailyCheckin.mutate()}
+            >
+              {dailyCheckin.isPending
+                ? "Claiming..."
+                : checkin?.canCheckin
+                ? "Check In"
+                : "Already Claimed"}
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Quick actions */}
         <div className="flex gap-3 flex-wrap">
