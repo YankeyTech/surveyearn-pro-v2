@@ -20,6 +20,7 @@ import Profile from "./pages/Profile";
 import Referrals from "./pages/Referrals";
 import Rewards from "./pages/Rewards";
 import Settings from "./pages/Settings";
+import SponsoredAds from "./pages/SponsoredAds";
 
 function ProtectedRoute({ component: Component, adminOnly = false }: { component: React.ComponentType; adminOnly?: boolean }) {
   const { user, loading, isAuthenticated } = useAuth();
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/referrals" component={() => <ProtectedRoute component={Referrals} />} />
       <Route path="/rewards" component={() => <ProtectedRoute component={Rewards} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
+      <Route path="/sponsored-ads" component={() => <ProtectedRoute component={SponsoredAds} />} />
       <Route path="/admin" component={() => <ProtectedRoute component={AdminDashboard} adminOnly />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={AdminDashboard} adminOnly />} />
       <Route path="/admin/withdrawals" component={() => <ProtectedRoute component={AdminDashboard} adminOnly />} />
