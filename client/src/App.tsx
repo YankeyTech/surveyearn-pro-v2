@@ -1,42 +1,50 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import Home from "@/pages/Home";
-import Surveys from "@/pages/Surveys";
-import SurveyDetail from "@/pages/SurveyDetail";
-import Wallet from "@/pages/Wallet";
-import Referrals from "@/pages/Referrals";
-import Rewards from "@/pages/Rewards";
-import Withdraw from "@/pages/Withdraw";
-import AdminDashboard from "@/pages/AdminDashboard";
-import Login from "@/pages/Login";
-import Dashboard from "@/pages/Dashboard";
-import Profile from "@/pages/Profile";
-import Settings from "@/pages/Settings";
-import { Route, Switch } from "wouter";
+import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
+import { Loader2 } from "lucide-react";
+import Dashboard from "./pages/Dashboard";
+import Surveys from "./pages/Surveys";
+import Wallet from "./pages/Wallet";
+import Withdraw from "./pages/Withdraw";
+import Admin from "./pages/Admin";
+
+function ProtectedRoute({ component: Component, adminOnly = false }: { component: React.ComponentType; adminOnly?: boolean }) {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    window.location.href = getLoginUrl("/");
+    return null;
+  }
+
+  if (adminOnly && user?.role !== "admin") {
+    return <Redirect to="/" />;
+  }
+
+  return <Component />;
+}
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/dashboard"} component={Dashboard} />
-      <Route path={"/profile"} component={Profile} />
-      <Route path={"/settings"} component={Settings} />
-      <Route path={"/login"} component={Login} />
-      <Route path={"/surveys"} component={Surveys} />
-      <Route path={/^\/survey\/\d+$/} component={SurveyDetail} />
-      <Route path={"/wallet"} component={Wallet} />
-      <Route path={"/referrals"} component={Referrals} />
-      <Route path={"/rewards"} component={Rewards} />
-      <Route path={"/withdraw"} component={Withdraw} />
-      <Route path={"/admin"} component={AdminDashboard} />
-      <Route path={"/admin/users"} component={AdminDashboard} />
-      <Route path={"/admin/surveys"} component={AdminDashboard} />
-      <Route path={"/admin/surveys/new"} component={AdminDashboard} />
-      <Route path={"/admin/withdrawals"} component={AdminDashboard} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
+      <Route path="/surveys" component={() => <ProtectedRoute component={Surveys} />} />
+      <Route path="/wallet" component={() => <ProtectedRoute component={Wallet} />} />
+      <Route path="/withdraw" component={() => <ProtectedRoute component={Withdraw} />} />
+      <Route path="/admin" component={() => <ProtectedRoute component={Admin} adminOnly />} />
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
