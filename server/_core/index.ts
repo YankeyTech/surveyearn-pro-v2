@@ -55,6 +55,9 @@ async function startServer() {
       return res.status(500).json({ error: err.message });
     }
   });
+   import { cpxPostbackHandler } from "../cpx";
+
+app.all("/api/cpx/postback", cpxPostbackHandler);
   // tRPC API
   app.use(
     "/api/trpc",
