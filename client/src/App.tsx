@@ -1,3 +1,4 @@
+import OffersPage from "@/pages/OffersPage";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -50,7 +51,8 @@ function Router() {
       <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
       <Route path="/home-feed" component={() => <ProtectedRoute component={HomeFeed} />} />
       <Route path="/surveys" component={() => <ProtectedRoute component={Surveys} />} />
-      <Route path="/wallet" component={() => <ProtectedRoute component={Wallet} />} />
+      <Route path="/offers" component={OffersPage} />
+<Route path="/wallet" component={() => <ProtectedRoute component={Wallet} />} />
       <Route path="/withdraw" component={() => <ProtectedRoute component={Withdraw} />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
       <Route path="/referrals" component={() => <ProtectedRoute component={Referrals} />} />

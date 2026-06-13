@@ -4,6 +4,7 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { cpxPostbackHandler } from "../cpx";
+import { registerCPALeadPostback } from "../cpalead";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
@@ -58,6 +59,7 @@ async function startServer() {
 
   // CPX Research postback — no auth needed, verified by hash
   app.all("/api/cpx/postback", cpxPostbackHandler);
+registerCPALeadPostback(app);
 
   // tRPC API
   app.use(
