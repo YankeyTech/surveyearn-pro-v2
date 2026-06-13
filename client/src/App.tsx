@@ -10,22 +10,20 @@ import Rewards from "@/pages/Rewards";
 import Withdraw from "@/pages/Withdraw";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Login from "@/pages/Login";
+import Dashboard from "@/pages/Dashboard";
+import Profile from "@/pages/Profile";
+import Settings from "@/pages/Settings";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
-import Dashboard from "@/pages/Dashboard";
-import Profile from "@/pages/Profile";
-import Settings from "@/pages/Settings";
-
 function Router() {
   return (
     <Switch>
-      <Route path={"/dashboard"} component={Dashboard} />
-<Route path={"/profile"} component={Profile} />
-<Route path={"/settings"} component={Settings} />
       <Route path={"/"} component={Home} />
-<Route path={"/dashboard"} component={Home} />
+      <Route path={"/dashboard"} component={Dashboard} />
+      <Route path={"/profile"} component={Profile} />
+      <Route path={"/settings"} component={Settings} />
       <Route path={"/login"} component={Login} />
       <Route path={"/surveys"} component={Surveys} />
       <Route path={/^\/survey\/\d+$/} component={SurveyDetail} />
@@ -35,7 +33,6 @@ function Router() {
       <Route path={"/withdraw"} component={Withdraw} />
       <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
