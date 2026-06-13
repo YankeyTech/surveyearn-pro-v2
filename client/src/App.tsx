@@ -8,6 +8,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Loader2 } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
+import HomeFeed from "./pages/HomeFeed";
 import Surveys from "./pages/Surveys";
 import Wallet from "./pages/Wallet";
 import Withdraw from "./pages/Withdraw";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
+<Route path="/home-feed" component={() => <ProtectedRoute component={HomeFeed} />} />
       <Route path="/surveys" component={() => <ProtectedRoute component={Surveys} />} />
       <Route path="/wallet" component={() => <ProtectedRoute component={Wallet} />} />
       <Route path="/withdraw" component={() => <ProtectedRoute component={Withdraw} />} />

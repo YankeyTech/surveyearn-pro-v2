@@ -27,7 +27,7 @@ export default function Home() {
     );
   }
 if (isAuthenticated) {
-    return <Redirect to="/dashboard" />;
+    return <Redirect to="/home-feed" />;
   }
 
   return (
