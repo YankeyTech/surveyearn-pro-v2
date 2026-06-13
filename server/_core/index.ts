@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
@@ -36,6 +37,32 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+
+  // One-time admin setup route — delete after use
+  app.get("/api/setup-admin", async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== process.env.JWT_SECRET) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    try {
+      const db = await import("../db");
+      const user = await db.getUserByEmail("barcavini17@gmail.com");
+      if (!user) return res.status(404).json({ error: "User not found" });
+      const { drizzle } = await import("drizzle-orm/mysql2");
+      const { users } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const mysql2 = require("mysql2/promise");
+      const connection = mysql2.createPool({
+        uri: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+      });
+      const dbInstance = drizzle(connection);
+      await dbInstance.update(users).set({ role: "admin" }).where(eq(users.email, "barcavini17@gmail.com"));
+      return res.json({ success: true, message: "Admin role granted to barcavini17@gmail.com" });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",
