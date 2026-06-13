@@ -3,6 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { cpxPostbackHandler } from "../cpx";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
@@ -58,6 +59,8 @@ async function startServer() {
    import { cpxPostbackHandler } from "../cpx";
 
 app.all("/api/cpx/postback", cpxPostbackHandler);
+
+   app.all("/api/cpx/postback", cpxPostbackHandler);
   // tRPC API
   app.use(
     "/api/trpc",
