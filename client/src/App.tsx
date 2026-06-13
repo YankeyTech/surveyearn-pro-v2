@@ -32,6 +32,10 @@ function Router() {
       <Route path={"/rewards"} component={Rewards} />
       <Route path={"/withdraw"} component={Withdraw} />
       <Route path={"/admin"} component={AdminDashboard} />
+      <Route path={"/admin/users"} component={AdminDashboard} />
+      <Route path={"/admin/surveys"} component={AdminDashboard} />
+      <Route path={"/admin/surveys/new"} component={AdminDashboard} />
+      <Route path={"/admin/withdrawals"} component={AdminDashboard} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
