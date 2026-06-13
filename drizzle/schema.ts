@@ -20,6 +20,8 @@ export const users = mysqlTable("users", {
 lastCheckinAt: timestamp("lastCheckinAt"),
   streakCount: int("streakCount").notNull().default(0),
   streakLastDate: varchar("streakLastDate", { length: 10 }),
+  passwordResetToken: varchar("passwordResetToken", { length: 128 }),
+  passwordResetExpiry: timestamp("passwordResetExpiry"),
 });
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
