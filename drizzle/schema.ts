@@ -1,12 +1,6 @@
 import {
-  int,
-  mysqlEnum,
-  mysqlTable,
-  text,
-  timestamp,
-  varchar,
-  decimal,
-  boolean,
+  int, mysqlEnum, mysqlTable, text,
+  timestamp, varchar, boolean,
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
@@ -14,6 +8,7 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  passwordHash: varchar("passwordHash", { length: 255 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -24,11 +19,10 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// Wallet balances per user (in USD cents to avoid float issues)
 export const wallets = mysqlTable("wallets", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
-  balanceCents: int("balanceCents").notNull().default(0), // stored in cents
+  balanceCents: int("balanceCents").notNull().default(0),
   totalEarnedCents: int("totalEarnedCents").notNull().default(0),
   totalWithdrawnCents: int("totalWithdrawnCents").notNull().default(0),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -36,16 +30,14 @@ export const wallets = mysqlTable("wallets", {
 
 export type Wallet = typeof wallets.$inferSelect;
 
-// Every credit/debit event
 export const transactions = mysqlTable("transactions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   type: mysqlEnum("type", ["survey_credit", "withdrawal_debit", "adjustment"]).notNull(),
-  amountCents: int("amountCents").notNull(), // positive = credit, negative = debit
-  // CPX-specific fields (populated on survey_credit)
+  amountCents: int("amountCents").notNull(),
   cpxTransId: varchar("cpxTransId", { length: 128 }),
   cpxSurveyId: varchar("cpxSurveyId", { length: 128 }),
-  cpxEarningCents: int("cpxEarningCents"), // raw CPX reward in cents
+  cpxEarningCents: int("cpxEarningCents"),
   status: mysqlEnum("status", ["pending", "completed", "reversed"]).notNull().default("completed"),
   note: text("note"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -53,13 +45,12 @@ export const transactions = mysqlTable("transactions", {
 
 export type Transaction = typeof transactions.$inferSelect;
 
-// Withdrawal requests
 export const withdrawals = mysqlTable("withdrawals", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   amountCents: int("amountCents").notNull(),
-  method: varchar("method", { length: 64 }).notNull(), // e.g. "mobile_money", "bank_transfer"
-  accountDetails: text("accountDetails").notNull(), // JSON string with account info
+  method: varchar("method", { length: 64 }).notNull(),
+  accountDetails: text("accountDetails").notNull(),
   status: mysqlEnum("status", ["pending", "approved", "rejected", "paid"]).notNull().default("pending"),
   adminNote: text("adminNote"),
   requestedAt: timestamp("requestedAt").defaultNow().notNull(),
