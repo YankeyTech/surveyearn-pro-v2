@@ -8,10 +8,12 @@ import { withdrawalRouter } from "./routers/withdrawal";
 import { adminRouter } from "./routers/admin";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import * as db from "./db";
+import { users } from "../drizzle/schema";
 import { hashPassword, verifyPassword } from "./_core/password";
 import { sdk } from "./_core/sdk";
-import { nanoid } from "nanoid";
 
 export const appRouter = router({
   system: systemRouter,
@@ -44,8 +46,12 @@ export const appRouter = router({
         });
         const user = await db.getUserByEmail(input.email);
         if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        // Store password hash
         const dbInstance = await db.getDb();
         if (dbInstance) {
-          const { users } = await import("../drizzle/schema");
-          const { eq } = await
+          await dbInstance.update(users).set({ passwordHash }).where(eq(users.id, user.id));
+        }
+        const sessionToken = await sdk.createSessionToken(openId, {
+          name: input.name,
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
