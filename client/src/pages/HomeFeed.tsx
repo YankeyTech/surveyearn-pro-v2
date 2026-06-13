@@ -4,10 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import {
-  DollarSign, TrendingUp, ArrowDownCircle, ClipboardList, LogOut, Gift,
+ DollarSign, TrendingUp, ArrowDownCircle, ClipboardList, LogOut, Gift,
   User, Users, Settings as SettingsIcon, Shield, Menu, X,
   Sparkles, Megaphone, PlayCircle, ShoppingBag, Star, Bell, ChevronRight,
-  Wallet, Trophy,
+  Wallet, Trophy, Tag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -37,6 +37,7 @@ export default function HomeFeed() {
   const navLinks = [
     { href: "/home-feed", label: "Home" },
     { href: "/surveys", label: "Surveys" },
+{ href: "/offers", label: "Offers" },
     { href: "/wallet", label: "Wallet" },
     { href: "/rewards", label: "Rewards" },
     { href: "/referrals", label: "Referrals" },
@@ -75,6 +76,16 @@ export default function HomeFeed() {
       badgeColor: "bg-white/30 text-white",
     },
     {
+
+      title: "CPALead Offers",
+      desc: "Complete offers and earn cash",
+      icon: Tag,
+      gradient: "from-orange-500 to-amber-500",
+      href: "/offers",
+      badge: "LIVE",
+      badgeColor: "bg-green-400 text-green-900",
+    },
+{
       title: "Sponsored Ads",
       desc: "Earn by engaging with brands",
       icon: Megaphone,
@@ -87,6 +98,7 @@ export default function HomeFeed() {
 
   const quickLinks = [
     { href: "/surveys", label: "Surveys", icon: ClipboardList, bg: "bg-violet-100", fg: "text-violet-600" },
+{ href: "/offers", label: "Offers", icon: Tag, bg: "bg-orange-100", fg: "text-orange-600" },
     { href: "/wallet", label: "Wallet", icon: Wallet, bg: "bg-green-100", fg: "text-green-600" },
     { href: "/withdraw", label: "Withdraw", icon: ArrowDownCircle, bg: "bg-orange-100", fg: "text-orange-600" },
     { href: "/rewards", label: "Rewards", icon: Trophy, bg: "bg-pink-100", fg: "text-pink-600" },
