@@ -18,6 +18,8 @@ export const users = mysqlTable("users", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 lastCheckinAt: timestamp("lastCheckinAt"),
+  streakCount: int("streakCount").notNull().default(0),
+  streakLastDate: varchar("streakLastDate", { length: 10 }),
 });
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

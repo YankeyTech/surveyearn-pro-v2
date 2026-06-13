@@ -93,7 +93,14 @@ export default function Dashboard() {
                 <Gift className="w-5 h-5 text-indigo-600" />
               </div>
               <div>
-                <p className="font-semibold text-sm">Daily Check-in Bonus</p>
+                <p className="font-semibold text-sm">
+                  Daily Check-in Bonus
+                  {checkin?.streakCount ? (
+                    <span className="ml-2 text-xs font-normal text-orange-500">
+                      🔥 {checkin.streakCount}-day streak
+                    </span>
+                  ) : null}
+                </p>
                 <p className="text-xs text-gray-400">
                   {checkinLoading
                     ? "Loading..."

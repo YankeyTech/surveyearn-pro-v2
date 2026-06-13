@@ -6,6 +6,10 @@ import { users, wallets, transactions } from "../../drizzle/schema";
 import { protectedProcedure, router } from "../_core/trpc";
 import { hashPassword, verifyPassword } from "../_core/password";
 
+function dateStr(d: Date) {
+  return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+}
+
 export const userRouter = router({
   updateProfile: protectedProcedure
     .input(z.object({
@@ -59,7 +63,7 @@ export const userRouter = router({
       const rows = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
       if (!rows.length) throw new TRPCError({ code: "NOT_FOUND" });
       const user = rows[0];
-      const REWARD_CENTS = 10;
+      const BASE_REWARD_CENTS = 10;
       const now = new Date();
       let canCheckin = true;
       let nextCheckinAt: Date | null = null;
@@ -71,7 +75,13 @@ export const userRouter = router({
           nextCheckinAt = next;
         }
       }
-      return { canCheckin, nextCheckinAt, lastCheckinAt: user.lastCheckinAt, rewardCents: REWARD_CENTS };
+      return {
+        canCheckin,
+        nextCheckinAt,
+        lastCheckinAt: user.lastCheckinAt,
+        rewardCents: BASE_REWARD_CENTS,
+        streakCount: user.streakCount,
+      };
     }),
 
   dailyCheckin: protectedProcedure
@@ -92,25 +102,48 @@ export const userRouter = router({
         }
       }
 
-      const REWARD_CENTS = 10;
+      const BASE_REWARD_CENTS = 10;
+      const STREAK_BONUS_CENTS = 50;
+      const STREAK_BONUS_INTERVAL = 7;
 
-      await db.update(users).set({ lastCheckinAt: now }).where(eq(users.id, ctx.user.id));
+      // Determine streak
+      const today = dateStr(now);
+      const yesterday = dateStr(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+      let newStreak = 1;
+      if (user.streakLastDate === yesterday) {
+        newStreak = (user.streakCount || 0) + 1;
+      } else {
+        newStreak = 1;
+      }
+
+      let totalReward = BASE_REWARD_CENTS;
+      let bonusAwarded = false;
+      if (newStreak % STREAK_BONUS_INTERVAL === 0) {
+        totalReward += STREAK_BONUS_CENTS;
+        bonusAwarded = true;
+      }
+
+      await db.update(users)
+        .set({ lastCheckinAt: now, streakCount: newStreak, streakLastDate: today })
+        .where(eq(users.id, ctx.user.id));
 
       await db.update(wallets)
         .set({
-          balanceCents: sql`${wallets.balanceCents} + ${REWARD_CENTS}`,
-          totalEarnedCents: sql`${wallets.totalEarnedCents} + ${REWARD_CENTS}`,
+          balanceCents: sql`${wallets.balanceCents} + ${totalReward}`,
+          totalEarnedCents: sql`${wallets.totalEarnedCents} + ${totalReward}`,
         })
         .where(eq(wallets.userId, ctx.user.id));
 
       await db.insert(transactions).values({
         userId: ctx.user.id,
         type: "daily_checkin",
-        amountCents: REWARD_CENTS,
+        amountCents: totalReward,
         status: "completed",
-        note: "Daily check-in bonus",
+        note: bonusAwarded
+          ? `Daily check-in + ${newStreak}-day streak bonus`
+          : `Daily check-in (streak: ${newStreak})`,
       });
 
-      return { success: true, rewardCents: REWARD_CENTS };
+      return { success: true, rewardCents: totalReward, streakCount: newStreak, bonusAwarded };
     }),
 });
