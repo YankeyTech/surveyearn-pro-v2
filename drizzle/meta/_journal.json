@@ -15,6 +15,13 @@
       "when": 1780601926237,
       "tag": "0001_skinny_firebird",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1781339328397,
+      "tag": "0002_next_pepper_potts",
+      "breakpoints": true
     }
   ]
 }

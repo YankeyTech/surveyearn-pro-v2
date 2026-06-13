@@ -12,10 +12,15 @@ import Surveys from "./pages/Surveys";
 import Wallet from "./pages/Wallet";
 import Withdraw from "./pages/Withdraw";
 import Admin from "./pages/Admin";
+import Login from "./pages/Login";
+import Home from "./pages/Home";
+import Profile from "./pages/Profile";
+import Referrals from "./pages/Referrals";
+import Rewards from "./pages/Rewards";
+import Settings from "./pages/Settings";
 
 function ProtectedRoute({ component: Component, adminOnly = false }: { component: React.ComponentType; adminOnly?: boolean }) {
   const { user, loading, isAuthenticated } = useAuth();
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -23,26 +28,29 @@ function ProtectedRoute({ component: Component, adminOnly = false }: { component
       </div>
     );
   }
-
   if (!isAuthenticated) {
-    window.location.href = getLoginUrl("/");
+    window.location.href = getLoginUrl();
     return null;
   }
-
   if (adminOnly && user?.role !== "admin") {
     return <Redirect to="/" />;
   }
-
   return <Component />;
 }
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
+      <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
+      <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
       <Route path="/surveys" component={() => <ProtectedRoute component={Surveys} />} />
       <Route path="/wallet" component={() => <ProtectedRoute component={Wallet} />} />
       <Route path="/withdraw" component={() => <ProtectedRoute component={Withdraw} />} />
+      <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
+      <Route path="/referrals" component={() => <ProtectedRoute component={Referrals} />} />
+      <Route path="/rewards" component={() => <ProtectedRoute component={Rewards} />} />
+      <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
       <Route path="/admin" component={() => <ProtectedRoute component={Admin} adminOnly />} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
