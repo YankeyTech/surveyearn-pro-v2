@@ -1,4 +1,6 @@
-import { useState } from "react";
+const fs = require("fs");
+
+const content = `import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 
 function fmt(cents) {
@@ -370,3 +372,7 @@ function WithdrawalsTab() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync("client/src/pages/AdminDashboard.tsx", content, "utf8");
+console.log("Done! AdminDashboard.tsx written successfully.");
