@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { DollarSign, TrendingUp, ArrowDownCircle, ClipboardList, LogOut, Gift } from "lucide-react";
+import { DollarSign, TrendingUp, ArrowDownCircle, ClipboardList, LogOut, Gift, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 function cents(c: number) {
@@ -31,7 +31,12 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Top nav */}
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-indigo-600">SurveyEarn Pro</h1>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back
+          </Button>
+          <h1 className="text-xl font-bold text-indigo-600">SurveyEarn Pro</h1>
+        </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600">{user?.name ?? user?.email}</span>
           {user?.role === "admin" && (

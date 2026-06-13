@@ -3,7 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getLoginUrl } from "@/const";
-import { Link } from "wouter";
+import { Link, Redirect } from "wouter";
 import {
   BarChart3,
   Gift,
@@ -25,6 +25,9 @@ export default function Home() {
         </div>
       </div>
     );
+  }
+if (isAuthenticated) {
+    return <Redirect to="/dashboard" />;
   }
 
   return (
