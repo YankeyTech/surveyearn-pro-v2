@@ -4,6 +4,7 @@ type Theme = "light" | "dark";
 
 interface ThemeContextType {
   theme: Theme;
+  setTheme: (theme: Theme | "system") => void;
   toggleTheme?: () => void;
   switchable: boolean;
 }
@@ -48,8 +49,15 @@ export function ThemeProvider({
       }
     : undefined;
 
+  const handleSetTheme = (value: Theme | "system") => {
+    const resolved: Theme = value === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : value;
+    setTheme(resolved);
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, switchable }}>
+    <ThemeContext.Provider value={{ theme, setTheme: handleSetTheme, toggleTheme, switchable }}>
       {children}
     </ThemeContext.Provider>
   );
