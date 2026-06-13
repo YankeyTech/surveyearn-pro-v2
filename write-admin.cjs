@@ -1,4 +1,5 @@
-import { z } from "zod";
+const fs = require("fs");
+const content = `import { z } from "zod";
 import { router, adminProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { Resend } from "resend";
@@ -17,14 +18,14 @@ export const adminRouter = router({
 
   getAnalytics: adminProcedure.query(async () => {
     const db = await getDb();
-    const [totalUsers] = await db.select({ count: sql`count(*)` }).from(users);
-    const [activeUsers] = await db.select({ count: sql`count(*)` }).from(users).where(eq(users.isSuspended, false));
-    const [suspendedUsers] = await db.select({ count: sql`count(*)` }).from(users).where(eq(users.isSuspended, true));
-    const [bannedUsers] = await db.select({ count: sql`count(*)` }).from(users).where(eq(users.isBanned, true));
-    const [pendingWd] = await db.select({ count: sql`count(*)` }).from(withdrawals).where(eq(withdrawals.status, "pending"));
-    const [totalTx] = await db.select({ count: sql`count(*)` }).from(transactions);
-    const [totalEarned] = await db.select({ total: sql`sum(balanceCents)` }).from(wallets);
-    const [totalWithdrawn] = await db.select({ total: sql`sum(totalWithdrawnCents)` }).from(wallets);
+    const [totalUsers] = await db.select({ count: sql\`count(*)\` }).from(users);
+    const [activeUsers] = await db.select({ count: sql\`count(*)\` }).from(users).where(eq(users.isSuspended, false));
+    const [suspendedUsers] = await db.select({ count: sql\`count(*)\` }).from(users).where(eq(users.isSuspended, true));
+    const [bannedUsers] = await db.select({ count: sql\`count(*)\` }).from(users).where(eq(users.isBanned, true));
+    const [pendingWd] = await db.select({ count: sql\`count(*)\` }).from(withdrawals).where(eq(withdrawals.status, "pending"));
+    const [totalTx] = await db.select({ count: sql\`count(*)\` }).from(transactions);
+    const [totalEarned] = await db.select({ total: sql\`sum(balanceCents)\` }).from(wallets);
+    const [totalWithdrawn] = await db.select({ total: sql\`sum(totalWithdrawnCents)\` }).from(wallets);
     return {
       totalUsers: totalUsers.count,
       activeUsers: activeUsers.count,
@@ -46,9 +47,9 @@ export const adminRouter = router({
       const dateStr = d.toISOString().slice(0, 10);
       const start = new Date(dateStr + "T00:00:00Z");
       const end = new Date(dateStr + "T23:59:59Z");
-      const [row] = await db.select({ count: sql`count(*)` })
+      const [row] = await db.select({ count: sql\`count(*)\` })
         .from(transactions)
-        .where(and(gte(transactions.createdAt, start), sql`${transactions.createdAt} <= ${end}`));
+        .where(and(gte(transactions.createdAt, start), sql\`\${transactions.createdAt} <= \${end}\`));
       days.push({ date: dateStr, count: row.count });
     }
     return days;
@@ -172,7 +173,7 @@ export const adminRouter = router({
     const db = await getDb();
     const [wd] = await db.select().from(withdrawals).where(eq(withdrawals.id, input.withdrawalId));
     if (!wd) throw new TRPCError({ code: "NOT_FOUND", message: "Withdrawal not found" });
-    await db.update(wallets).set({ balanceCents: sql`balanceCents + ${wd.amountCents}` }).where(eq(wallets.userId, wd.userId));
+    await db.update(wallets).set({ balanceCents: sql\`balanceCents + \${wd.amountCents}\` }).where(eq(wallets.userId, wd.userId));
     await db.insert(transactions).values({ userId: wd.userId, type: "adjustment", amountCents: wd.amountCents, status: "completed", note: "Withdrawal rejected - refund" });
     await db.update(withdrawals).set({ status: "rejected", adminNote: input.note ?? null, processedAt: new Date() }).where(eq(withdrawals.id, input.withdrawalId));
     const [user] = await db.select().from(users).where(eq(users.id, wd.userId));
@@ -211,7 +212,7 @@ export const adminRouter = router({
     const [user] = await db.select().from(users).where(eq(users.id, input.userId));
     if (!user?.email) throw new TRPCError({ code: "NOT_FOUND", message: "User has no email" });
     await sendEmail(user.email, input.subject,
-      "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto'><h2 style='color:#f97316'>SurveyEarn Pro</h2><div>" + input.body.replace(/\n/g, "<br>") + "</div><p style='color:#999;font-size:12px;margin-top:24px'>- The SurveyEarn Team</p></div>"
+      "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto'><h2 style='color:#f97316'>SurveyEarn Pro</h2><div>" + input.body.replace(/\\n/g, "<br>") + "</div><p style='color:#999;font-size:12px;margin-top:24px'>- The SurveyEarn Team</p></div>"
     );
     return { success: true };
   }),
@@ -226,9 +227,12 @@ export const adminRouter = router({
     for (let i = 0; i < emails.length; i += 50) {
       const batch = emails.slice(i, i + 50);
       await Promise.all(batch.map(u => sendEmail(u.email, input.subject,
-        "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto'><h2 style='color:#f97316'>SurveyEarn Pro</h2><p>Hi " + (u.name ?? "there") + ",</p><div>" + input.body.replace(/\n/g, "<br>") + "</div><p style='color:#999;font-size:12px;margin-top:24px'>- The SurveyEarn Team</p></div>"
+        "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto'><h2 style='color:#f97316'>SurveyEarn Pro</h2><p>Hi " + (u.name ?? "there") + ",</p><div>" + input.body.replace(/\\n/g, "<br>") + "</div><p style='color:#999;font-size:12px;margin-top:24px'>- The SurveyEarn Team</p></div>"
       )));
     }
     return { success: true, sent: emails.length };
   }),
 });
+`;
+fs.writeFileSync("server/routers/admin.ts", content, "utf8");
+console.log("Done! admin.ts written successfully.");
