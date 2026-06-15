@@ -144,7 +144,7 @@ export default function HomeFeed() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
 
          <Link href="/home-feed">
-            <img src="/logo.png" alt="SurveyEarn Pro" className="h-23 w-auto" />
+            <img src="/logo.webp" alt="SurveyEarn Pro" className="h-23 w-auto" />
           </Link>
 
           {/* Nav links */}

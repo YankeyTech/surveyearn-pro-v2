@@ -36,7 +36,7 @@ if (isAuthenticated) {
       <nav className="border-b border-border sticky top-0 bg-background/80 backdrop-blur-sm z-50">
         <div className="container flex items-center justify-between py-4">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="SurveyEarn Pro" className="h-9 w-auto" />
+            <img src="/logo.webp" alt="SurveyEarn Pro" className="h-9 w-auto" />
           </div>
 
           <div className="flex items-center gap-4">
