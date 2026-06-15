@@ -143,10 +143,8 @@ export default function HomeFeed() {
       <header className="bg-white border-b sticky top-0 z-50" style={{ boxShadow: "0 2px 8px rgba(79,53,210,0.08)" }}>
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
 
-          {/* Logo */}
-          <Link href="/home-feed">
-          <img src="/logo.png" alt="SurveyEarn Pro" className="h-9 w-auto" />
-            </div>
+         <Link href="/home-feed">
+            <img src="/logo.png" alt="SurveyEarn Pro" className="h-9 w-auto" />
           </Link>
 
           {/* Nav links */}
