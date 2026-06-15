@@ -46,6 +46,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
+<Route path="/signup" component={Login} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
       <Route path="/home-feed" component={() => <ProtectedRoute component={HomeFeed} />} />
