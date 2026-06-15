@@ -36,10 +36,7 @@ if (isAuthenticated) {
       <nav className="border-b border-border sticky top-0 bg-background/80 backdrop-blur-sm z-50">
         <div className="container flex items-center justify-between py-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-accent to-blue-600 rounded-lg flex items-center justify-center">
-              <Gift className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold">SurveyEarn Pro</span>
+            <img src="/logo.png" alt="SurveyEarn Pro" className="h-9 w-auto" />
           </div>
 
           <div className="flex items-center gap-4">

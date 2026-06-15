@@ -145,13 +145,7 @@ export default function HomeFeed() {
 
           {/* Logo */}
           <Link href="/home-feed">
-            <div className="flex items-center gap-2 cursor-pointer shrink-0">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md" style={{ background: "linear-gradient(135deg,#4f35d2,#7c3aed)" }}>
-                <Gift className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-extrabold hidden sm:inline" style={{ background: "linear-gradient(135deg,#4f35d2,#7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                SurveyEarn Pro
-              </span>
+          <img src="/logo.png" alt="SurveyEarn Pro" className="h-9 w-auto" />
             </div>
           </Link>
 
