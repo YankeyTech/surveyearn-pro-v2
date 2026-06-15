@@ -10,7 +10,7 @@ import { userRouter } from "./routers/user";
 import { referralRouter } from "./routers/referral";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import * as db from "./db";
 import { users } from "../drizzle/schema";
@@ -21,6 +21,16 @@ import { sdk } from "./_core/sdk";
 
 export const appRouter = router({
   system: systemRouter,
+runMigration: publicProcedure.mutation(async () => {
+    const dbInstance = await db.getDb();
+    if (!dbInstance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    await dbInstance.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS referralCode VARCHAR(16) UNIQUE`);
+    await dbInstance.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS referredBy INT DEFAULT NULL`);
+    await dbInstance.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS referralBonusPaid BOOLEAN NOT NULL DEFAULT FALSE`);
+    await dbInstance.execute(sql`UPDATE users SET referralCode = UPPER(SUBSTRING(MD5(RAND()), 1, 8)) WHERE referralCode IS NULL`);
+    await dbInstance.execute(sql`ALTER TABLE transactions MODIFY COLUMN type ENUM('survey_credit','withdrawal_debit','adjustment','daily_checkin','referral_bonus') NOT NULL`);
+    return { success: true };
+  }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
