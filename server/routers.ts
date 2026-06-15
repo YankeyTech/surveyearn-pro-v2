@@ -22,15 +22,33 @@ import { sdk } from "./_core/sdk";
 export const appRouter = router({
   system: systemRouter,
 runMigration: publicProcedure.mutation(async () => {
-    const dbInstance = await db.getDb();
-    if (!dbInstance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-    await dbInstance.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS referralCode VARCHAR(16) UNIQUE`);
-    await dbInstance.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS referredBy INT DEFAULT NULL`);
-    await dbInstance.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS referralBonusPaid BOOLEAN NOT NULL DEFAULT FALSE`);
-    await dbInstance.execute(sql`UPDATE users SET referralCode = UPPER(SUBSTRING(MD5(RAND()), 1, 8)) WHERE referralCode IS NULL`);
-    await dbInstance.execute(sql`ALTER TABLE transactions MODIFY COLUMN type ENUM('survey_credit','withdrawal_debit','adjustment','daily_checkin','referral_bonus') NOT NULL`);
-    return { success: true };
-  }),
+  const dbInstance = await db.getDb();
+  if (!dbInstance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+  const queries = [
+    `ALTER TABLE users ADD COLUMN referralCode VARCHAR(16) UNIQUE`,
+    `ALTER TABLE users ADD COLUMN referredBy INT DEFAULT NULL`,
+    `ALTER TABLE users ADD COLUMN referralBonusPaid BOOLEAN NOT NULL DEFAULT FALSE`,
+    `UPDATE users SET referralCode = UPPER(SUBSTRING(MD5(RAND()), 1, 8)) WHERE referralCode IS NULL`,
+    `ALTER TABLE transactions MODIFY COLUMN type ENUM('survey_credit','withdrawal_debit','adjustment','daily_checkin','referral_bonus') NOT NULL`,
+  ];
+
+  const results: string[] = [];
+  for (const q of queries) {
+    try {
+      await dbInstance.execute(sql`${sql.raw(q)}`);
+      results.push(`OK: ${q.slice(0, 50)}`);
+    } catch (e: any) {
+      // Skip if column already exists
+      if (e.message?.includes("Duplicate column")) {
+        results.push(`SKIP (exists): ${q.slice(0, 50)}`);
+      } else {
+        results.push(`ERR: ${e.message}`);
+      }
+    }
+  }
+  return { results };
+}),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
