@@ -36,18 +36,19 @@ runMigration: publicProcedure.mutation(async () => {
   const results: string[] = [];
   for (const q of queries) {
     try {
-      await dbInstance.execute(sql`${sql.raw(q)}`);
+      await (dbInstance as any).execute(q);
       results.push(`OK: ${q.slice(0, 50)}`);
     } catch (e: any) {
-      // Skip if column already exists
-      if (e.message?.includes("Duplicate column")) {
-        results.push(`SKIP (exists): ${q.slice(0, 50)}`);
+      if (e.message?.includes("Duplicate column") || e.message?.includes("already exists")) {
+        results.push(`SKIP: ${q.slice(0, 50)}`);
       } else {
         results.push(`ERR: ${e.message}`);
       }
     }
   }
   return { results };
+}),
+   
 }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
