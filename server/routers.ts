@@ -1,3 +1,4 @@
+import { creditReferralBonuses } from "./lib/referral";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -57,23 +58,60 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
-    register: publicProcedure
-      .input(z.object({ name: z.string().min(1), email: z.string().email(), password: z.string().min(6) }))
-      .mutation(async ({ input, ctx }) => {
-        const existing = await db.getUserByEmail(input.email);
-        if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "Email already registered" });
-        const openId = `email_${nanoid()}`;
-        const passwordHash = hashPassword(input.password);
-        await db.upsertUser({ openId, name: input.name, email: input.email, loginMethod: "email", lastSignedIn: new Date() });
-        const user = await db.getUserByEmail(input.email);
-        if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const dbInstance = await db.getDb();
-        if (dbInstance) await dbInstance.update(users).set({ passwordHash }).where(eq(users.id, user.id));
-        const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-        return { success: true };
-      }),
+   
+register: publicProcedure
+  .input(z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    password: z.string().min(6),
+    refCode: z.string().optional(),
+  }))
+  .mutation(async ({ input, ctx }) => {
+    const existing = await db.getUserByEmail(input.email);
+    if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "Email already registered" });
+
+    const openId = `email_${nanoid()}`;
+    const passwordHash = hashPassword(input.password);
+
+    // Generate referral code for new user
+    const newReferralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    // Look up referrer if refCode provided
+    let referrerId: number | null = null;
+    const dbInstance = await db.getDb();
+    if (input.refCode && dbInstance) {
+      const [referrer] = await dbInstance
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.referralCode, input.refCode))
+        .limit(1);
+      if (referrer) referrerId = referrer.id;
+    }
+
+    await db.upsertUser({ openId, name: input.name, email: input.email, loginMethod: "email", lastSignedIn: new Date() });
+    const user = await db.getUserByEmail(input.email);
+    if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+    if (dbInstance) {
+      await dbInstance.update(users)
+        .set({
+          passwordHash,
+          referralCode: newReferralCode,
+          referredBy: referrerId ?? undefined,
+        })
+        .where(eq(users.id, user.id));
+    }
+
+    // Credit referral bonuses
+    if (referrerId) {
+      await creditReferralBonuses(referrerId, user.id);
+    }
+
+    const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
+    const cookieOptions = getSessionCookieOptions(ctx.req);
+    ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+    return { success: true };
+  }),
 
     forgotPassword: publicProcedure
       .input(z.object({ email: z.string().email() }))

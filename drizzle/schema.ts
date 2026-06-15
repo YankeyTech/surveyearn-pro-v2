@@ -2,6 +2,7 @@ import {
   int, mysqlEnum, mysqlTable, text,
   timestamp, varchar, boolean,
 } from "drizzle-orm/mysql-core";
+
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
@@ -17,14 +18,19 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-lastCheckinAt: timestamp("lastCheckinAt"),
+  lastCheckinAt: timestamp("lastCheckinAt"),
   streakCount: int("streakCount").notNull().default(0),
   streakLastDate: varchar("streakLastDate", { length: 10 }),
   passwordResetToken: varchar("passwordResetToken", { length: 128 }),
   passwordResetExpiry: timestamp("passwordResetExpiry"),
+  referralCode: varchar("referralCode", { length: 16 }).unique(),
+  referredBy: int("referredBy"),
+  referralBonusPaid: boolean("referralBonusPaid").notNull().default(false),
 });
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
 export const wallets = mysqlTable("wallets", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
@@ -33,11 +39,19 @@ export const wallets = mysqlTable("wallets", {
   totalWithdrawnCents: int("totalWithdrawnCents").notNull().default(0),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
 export type Wallet = typeof wallets.$inferSelect;
+
 export const transactions = mysqlTable("transactions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  type: mysqlEnum("type", ["survey_credit", "withdrawal_debit", "adjustment", "daily_checkin"]).notNull(),
+  type: mysqlEnum("type", [
+    "survey_credit",
+    "withdrawal_debit",
+    "adjustment",
+    "daily_checkin",
+    "referral_bonus",
+  ]).notNull(),
   amountCents: int("amountCents").notNull(),
   cpxTransId: varchar("cpxTransId", { length: 128 }),
   cpxSurveyId: varchar("cpxSurveyId", { length: 128 }),
@@ -46,7 +60,9 @@ export const transactions = mysqlTable("transactions", {
   note: text("note"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
 export type Transaction = typeof transactions.$inferSelect;
+
 export const withdrawals = mysqlTable("withdrawals", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -58,4 +74,5 @@ export const withdrawals = mysqlTable("withdrawals", {
   requestedAt: timestamp("requestedAt").defaultNow().notNull(),
   processedAt: timestamp("processedAt"),
 });
+
 export type Withdrawal = typeof withdrawals.$inferSelect;
