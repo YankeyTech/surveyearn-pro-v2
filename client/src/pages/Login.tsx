@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -26,10 +26,21 @@ function GoogleIcon() {
 
 export default function Login() {
   const [, navigate] = useLocation();
+  const search = useSearch();
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [refCode, setRefCode] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const ref = params.get("ref");
+    if (ref) {
+      setRefCode(ref);
+      setMode("register");
+    }
+  }, [search]);
 
   const utils = trpc.useUtils();
 
@@ -72,7 +83,7 @@ export default function Login() {
     if (mode === "register") {
       if (!name) { toast.error("Please enter your name"); return; }
       if (password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
-      register.mutate({ name, email, password });
+      register.mutate({ name, email, password, refCode });
     } else {
       login.mutate({ email, password });
     }
@@ -89,7 +100,9 @@ export default function Login() {
             {mode === "login"
               ? "Sign in to continue earning rewards"
               : mode === "register"
-              ? "Sign up to start earning rewards"
+              ? refCode
+                ? "You were invited! Sign up to claim your $0.25 welcome bonus 🎉"
+                : "Sign up to start earning rewards"
               : "Enter your email and we'll send you a reset link"}
           </CardDescription>
         </CardHeader>
@@ -164,6 +177,12 @@ export default function Login() {
                   placeholder="••••••••"
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
                 />
+              </div>
+            )}
+
+            {mode === "register" && refCode && (
+              <div className="text-xs text-green-500 bg-green-500/10 rounded-md px-3 py-2">
+                🎁 Referral code <strong>{refCode}</strong> applied — you'll get $0.25 on signup!
               </div>
             )}
 
