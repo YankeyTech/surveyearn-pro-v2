@@ -32,9 +32,8 @@ function ProtectedRoute({ component: Component, adminOnly = false }: { component
       </div>
     );
   }
-  if (!isAuthenticated) {
-    window.location.href = getLoginUrl();
-    return null;
+ if (!isAuthenticated) {
+    return <Redirect to="/login" />;
   }
   if (adminOnly && user?.role !== "admin") {
     return <Redirect to="/" />;
