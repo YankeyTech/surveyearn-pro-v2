@@ -21,35 +21,35 @@ import { sdk } from "./_core/sdk";
 
 export const appRouter = router({
   system: systemRouter,
-runMigration: publicProcedure.mutation(async () => {
-  const dbInstance = await db.getDb();
-  if (!dbInstance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-  const queries = [
-    `ALTER TABLE users ADD COLUMN referralCode VARCHAR(16) UNIQUE`,
-    `ALTER TABLE users ADD COLUMN referredBy INT DEFAULT NULL`,
-    `ALTER TABLE users ADD COLUMN referralBonusPaid BOOLEAN NOT NULL DEFAULT FALSE`,
-    `UPDATE users SET referralCode = UPPER(SUBSTRING(MD5(RAND()), 1, 8)) WHERE referralCode IS NULL`,
-    `ALTER TABLE transactions MODIFY COLUMN type ENUM('survey_credit','withdrawal_debit','adjustment','daily_checkin','referral_bonus') NOT NULL`,
-  ];
+  runMigration: publicProcedure.mutation(async () => {
+    const dbInstance = await db.getDb();
+    if (!dbInstance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-  const results: string[] = [];
-  for (const q of queries) {
-    try {
-      await (dbInstance as any).execute(q);
-      results.push(`OK: ${q.slice(0, 50)}`);
-    } catch (e: any) {
-      if (e.message?.includes("Duplicate column") || e.message?.includes("already exists")) {
-        results.push(`SKIP: ${q.slice(0, 50)}`);
-      } else {
-        results.push(`ERR: ${e.message}`);
+    const queries = [
+      `ALTER TABLE users ADD COLUMN referralCode VARCHAR(16) UNIQUE`,
+      `ALTER TABLE users ADD COLUMN referredBy INT DEFAULT NULL`,
+      `ALTER TABLE users ADD COLUMN referralBonusPaid BOOLEAN NOT NULL DEFAULT FALSE`,
+      `UPDATE users SET referralCode = UPPER(SUBSTRING(MD5(RAND()), 1, 8)) WHERE referralCode IS NULL`,
+      `ALTER TABLE transactions MODIFY COLUMN type ENUM('survey_credit','withdrawal_debit','adjustment','daily_checkin','referral_bonus') NOT NULL`,
+    ];
+
+    const results: string[] = [];
+    for (const q of queries) {
+      try {
+        await (dbInstance as any).execute(q);
+        results.push(`OK: ${q.slice(0, 50)}`);
+      } catch (e: any) {
+        if (e.message?.includes("Duplicate column") || e.message?.includes("already exists")) {
+          results.push(`SKIP: ${q.slice(0, 50)}`);
+        } else {
+          results.push(`ERR: ${e.message}`);
+        }
       }
     }
-  }
-  return { results };
-}),
-   
-}),
+    return { results };
+  }),
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -74,7 +74,8 @@ runMigration: publicProcedure.mutation(async () => {
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
         return { success: true };
       }),
-forgotPassword: publicProcedure
+
+    forgotPassword: publicProcedure
       .input(z.object({ email: z.string().email() }))
       .mutation(async ({ input }) => {
         const user = await db.getUserByEmail(input.email);
@@ -108,6 +109,7 @@ forgotPassword: publicProcedure
           .where(eq(users.id, user.id));
         return { success: true };
       }),
+
     login: publicProcedure
       .input(z.object({ email: z.string().email(), password: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
@@ -122,6 +124,7 @@ forgotPassword: publicProcedure
         return { success: true };
       }),
   }),
+
   wallet: walletRouter,
   survey: surveyRouter,
   withdrawal: withdrawalRouter,
